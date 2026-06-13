@@ -1,9 +1,10 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, send_file
 import os
 import cv2
 import numpy as np
 import pytesseract
 from PIL import Image
+import io
 
 app = Flask(__name__)
 
@@ -130,10 +131,9 @@ def extract_sudoku_board(image_path):
 
     board = [[0]*SIZE for _ in range(SIZE)]
 
-    # প্রতিটি সেলে OCR
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Windows এর জন্য। লিনাক্স/ম্যাকে মন্তব্য করে দিন
-    # লিনাক্স/ম্যাকে উপরের লাইনটি কমেন্ট করে নিচেরটি ব্যবহার করুন:
-    # pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+    # প্রতিটি সেলে OCR - Use environment variable for Tesseract path
+    tesseract_path = os.environ.get('TESSERACT_PATH', r'C:\Program Files\Tesseract-OCR\tesseract.exe')
+    pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
     for i in range(SIZE):
         for j in range(SIZE):
@@ -170,6 +170,16 @@ def order_points(pts):
     rect[1] = pts[np.argmin(diff)]
     rect[3] = pts[np.argmax(diff)]
     return rect
+
+@app.route('/favicon.ico')
+@app.route('/favicon.png')
+def favicon():
+    # Return a simple transparent 16x16 PNG as favicon
+    img = Image.new('RGBA', (16, 16), (0, 0, 0, 0))
+    img_io = io.BytesIO()
+    img.save(img_io, 'PNG')
+    img_io.seek(0)
+    return send_file(img_io, mimetype='image/png')
 
 @app.route("/", methods=["GET", "POST"])
 def home():
